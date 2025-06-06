@@ -45,6 +45,7 @@ const EditEquipmentModern = () => {
     location_id: '',
     description: '',
     reference_image_id: '',
+    quantity: 1,
   });
 
   const [error, setError] = useState('');
@@ -71,7 +72,7 @@ const EditEquipmentModern = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
 
   // Fetch equipment details
   const { data: equipment, isLoading, isError, error: fetchError } = useQuery({
@@ -91,6 +92,7 @@ const EditEquipmentModern = () => {
         location_id: data.location_id ? data.location_id.toString() : '',
         description: data.description || '',
         reference_image_id: data.reference_image_id ? data.reference_image_id.toString() : '',
+        quantity: data.quantity || 1,
       });
     },
   });
@@ -186,26 +188,55 @@ const EditEquipmentModern = () => {
         location_id: ''
       };
     }
+    // Special handling for quantity field
+    else if (name === 'quantity') {
+      const quantityValue = parseInt(value, 10);
+
+      // Validate quantity
+      if (isNaN(quantityValue) || quantityValue < 0) {
+        console.log('Invalid quantity value, keeping previous value');
+        return; // Don't update if invalid
+      }
+
+      updatedFormData.quantity = quantityValue;
+
+      // If quantity is 0, set status to 'unavailable'
+      if (quantityValue === 0) {
+        console.log('Setting status to unavailable because quantity is 0');
+        updatedFormData.status = 'unavailable';
+      } else if (formData.status === 'unavailable' && quantityValue > 0) {
+        // If status was unavailable and quantity is now > 0, reset to available
+        console.log('Resetting status from unavailable to available because quantity > 0');
+        updatedFormData.status = 'available';
+      }
+    }
     // Special handling for status field
     else if (name === 'status') {
       // If user manually changes status, respect their choice
       console.log(`User manually changed status to: ${value}`);
 
-      // But if location is "Lager", force status to "available"
-      const currentLocationName = formData.location || '';
-      const currentLocationId = formData.location_id;
-      let isLager = false;
-
-      if (currentLocationId && locationsData?.locations) {
-        const selectedLocation = locationsData.locations.find(loc => loc.id.toString() === currentLocationId);
-        isLager = selectedLocation?.name.toLowerCase() === 'lager';
-      } else if (currentLocationName) {
-        isLager = currentLocationName.toLowerCase() === 'lager';
+      // But if quantity is 0, force status to "unavailable"
+      if (formData.quantity === 0 && value !== 'unavailable') {
+        console.log('Forcing status to "unavailable" because quantity is 0');
+        updatedFormData.status = 'unavailable';
       }
+      // But if location is "Lager", force status to "available" (unless quantity is 0)
+      else {
+        const currentLocationName = formData.location || '';
+        const currentLocationId = formData.location_id;
+        let isLager = false;
 
-      if (isLager && value !== 'available') {
-        console.log('Forcing status back to "available" because location is Lager');
-        updatedFormData.status = 'available';
+        if (currentLocationId && locationsData?.locations) {
+          const selectedLocation = locationsData.locations.find(loc => loc.id.toString() === currentLocationId);
+          isLager = selectedLocation?.name.toLowerCase() === 'lager';
+        } else if (currentLocationName) {
+          isLager = currentLocationName.toLowerCase() === 'lager';
+        }
+
+        if (isLager && value !== 'available' && formData.quantity > 0) {
+          console.log('Forcing status back to "available" because location is Lager');
+          updatedFormData.status = 'available';
+        }
       }
     }
 
@@ -217,6 +248,12 @@ const EditEquipmentModern = () => {
     // Validate required fields
     if (!formData.brand || !formData.model || !formData.serial_number) {
       setError('Brand, model, and serial number are required');
+      return;
+    }
+
+    // Validate quantity
+    if (formData.quantity < 0 || isNaN(formData.quantity)) {
+      setError('Quantity must be a non-negative number');
       return;
     }
 
@@ -264,6 +301,8 @@ const EditEquipmentModern = () => {
         return 'primary';
       case 'maintenance':
         return 'warning';
+      case 'unavailable':
+        return 'danger';
       default:
         return 'secondary';
     }
@@ -551,6 +590,22 @@ const EditEquipmentModern = () => {
                             </div>
 
                             <div>
+                              <h3 className="text-sm font-medium text-slate-500">Quantity</h3>
+                              <Input
+                                name="quantity"
+                                type="number"
+                                min="0"
+                                value={formData.quantity || 1}
+                                onChange={handleInputChange}
+                                className="mt-1"
+                                required
+                              />
+                              <p className="mt-1 text-xs text-slate-500">
+                                Number of items (0 = unavailable, default = 1)
+                              </p>
+                            </div>
+
+                            <div>
                               <h3 className="text-sm font-medium text-slate-500">Location</h3>
                               <Select
                                 name="location_id"
@@ -622,6 +677,14 @@ const EditEquipmentModern = () => {
                                 }))}
                                 className="mt-1"
                               />
+                              {formData.quantity === 0 && (
+                                <p className="mt-1 text-xs text-orange-600">
+                                  <svg className="inline-block h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                  </svg>
+                                  Status automatically set to "Unavailable" when quantity is 0
+                                </p>
+                              )}
                             </div>
                           </div>
 

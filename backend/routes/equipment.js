@@ -173,7 +173,8 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       location,
       location_id,
       description,
-      reference_image_id
+      reference_image_id,
+      quantity
     } = req.body;
 
     // Validate required fields
@@ -240,6 +241,17 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       }
     }
 
+    // Parse and validate quantity
+    let equipmentQuantity = 1; // Default quantity
+    if (quantity !== undefined && quantity !== null && quantity !== '') {
+      equipmentQuantity = parseInt(quantity, 10);
+      if (isNaN(equipmentQuantity) || equipmentQuantity < 0) {
+        return res.status(400).json({
+          message: 'Quantity must be a non-negative integer'
+        });
+      }
+    }
+
     const equipmentData = {
       type: equipmentType.name,
       type_id: type_id,
@@ -251,7 +263,8 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       status: status || autoStatus, // Use provided status or auto-determined status
       location: locationName,
       location_id: location_id || null,
-      description
+      description,
+      quantity: equipmentQuantity
     };
 
     // Only add reference_image_id if it's not empty
@@ -391,7 +404,8 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       reference_image_id,
       location_id_is_null,
       type_id_is_null,
-      category_id_is_null
+      category_id_is_null,
+      quantity
     } = req.body;
 
     // Find equipment
@@ -439,6 +453,17 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       }
     }
 
+    // Parse and validate quantity
+    let equipmentQuantity = equipment.quantity; // Keep existing quantity by default
+    if (quantity !== undefined && quantity !== null && quantity !== '') {
+      equipmentQuantity = parseInt(quantity, 10);
+      if (isNaN(equipmentQuantity) || equipmentQuantity < 0) {
+        return res.status(400).json({
+          message: 'Quantity must be a non-negative integer'
+        });
+      }
+    }
+
     // Prepare update data
     const updateData = {
       type: typeName,
@@ -451,7 +476,8 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       status: status || equipment.status,
       location: location !== undefined ? location : equipment.location,
       location_id: location_id_is_null === 'true' ? null : (location_id !== undefined ? location_id : equipment.location_id),
-      description: description !== undefined ? description : equipment.description
+      description: description !== undefined ? description : equipment.description,
+      quantity: equipmentQuantity
     };
 
     // ALWAYS handle location and location_id together to ensure consistency

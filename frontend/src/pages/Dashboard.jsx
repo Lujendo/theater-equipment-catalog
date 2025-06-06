@@ -732,6 +732,8 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
         return <Badge variant="info">{status}</Badge>;
       case 'maintenance':
         return <Badge variant="warning">{status}</Badge>;
+      case 'unavailable':
+        return <Badge variant="danger">{status}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -781,6 +783,7 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
             <p className="text-sm mt-1">{equipment.description || 'No description available'}</p>
             <p className="text-sm mt-2">Serial: {equipment.serial_number}</p>
             <p className="text-sm">Location: {equipment.location || 'Not specified'}</p>
+            <p className="text-sm">Quantity: {equipment.quantity || 1}</p>
           </div>
         )}
       </div>
@@ -792,8 +795,16 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
             {equipment.category && (
               <p className="text-xs text-slate-500">Category: {equipment.category}</p>
             )}
+            {equipment.quantity && equipment.quantity !== 1 && (
+              <p className="text-xs text-blue-600 font-medium">Qty: {equipment.quantity}</p>
+            )}
           </div>
-          {getStatusBadge(equipment.status)}
+          <div className="flex flex-col items-end gap-1">
+            {getStatusBadge(equipment.status)}
+            {equipment.quantity === 0 && (
+              <span className="text-xs text-red-600 font-medium">Out of Stock</span>
+            )}
+          </div>
         </div>
         <h2 className="text-lg font-semibold mb-1">
           {searchTerm ? (
@@ -1311,6 +1322,7 @@ const Dashboard = () => {
                   { value: 'available', label: 'Available' },
                   { value: 'in-use', label: 'In Use' },
                   { value: 'maintenance', label: 'Maintenance' },
+                  { value: 'unavailable', label: 'Unavailable' },
                 ]}
               />
 
@@ -1552,11 +1564,23 @@ const Dashboard = () => {
                             <p className="text-sm text-slate-600">
                               {equipment.type} • SN: {equipment.serial_number}
                             </p>
-                            {equipment.location && (
-                              <p className="text-xs text-slate-500 mt-1">
-                                📍 {equipment.location}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-3 mt-1">
+                              {equipment.location && (
+                                <p className="text-xs text-slate-500">
+                                  📍 {equipment.location}
+                                </p>
+                              )}
+                              {equipment.quantity && equipment.quantity !== 1 && (
+                                <p className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">
+                                  Qty: {equipment.quantity}
+                                </p>
+                              )}
+                              {equipment.quantity === 0 && (
+                                <p className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
+                                  Out of Stock
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -1564,7 +1588,8 @@ const Dashboard = () => {
                             variant={
                               equipment.status === 'available' ? 'success' :
                               equipment.status === 'in-use' ? 'info' :
-                              equipment.status === 'maintenance' ? 'warning' : 'default'
+                              equipment.status === 'maintenance' ? 'warning' :
+                              equipment.status === 'unavailable' ? 'danger' : 'default'
                             }
                           >
                             {equipment.status}

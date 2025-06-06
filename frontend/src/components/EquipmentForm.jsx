@@ -159,6 +159,20 @@ const EquipmentForm = ({
               }}
             />
 
+            {/* Quantity */}
+            <Input
+              id="quantity"
+              name="quantity"
+              label="Quantity"
+              type="number"
+              min="0"
+              value={formData.quantity || 1}
+              onChange={handleInputChange}
+              placeholder="Enter quantity"
+              required
+              helpText="Number of items (0 = unavailable, default = 1)"
+            />
+
             {/* Status */}
             <Select
               id="status"
@@ -171,6 +185,7 @@ const EquipmentForm = ({
                 label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' '),
               }))}
               required
+              helpText={formData.quantity === 0 ? "Status is automatically set to 'unavailable' when quantity is 0" : ""}
             />
 
             {/* Location */}

@@ -132,6 +132,8 @@ const EquipmentDetailsModern = () => {
         return 'primary';
       case 'maintenance':
         return 'warning';
+      case 'unavailable':
+        return 'danger';
       default:
         return 'secondary';
     }
@@ -308,12 +310,37 @@ const EquipmentDetailsModern = () => {
                             </div>
 
                             <div>
+                              <h3 className="text-sm font-medium text-slate-500">Quantity</h3>
+                              <div className="mt-1 flex items-center">
+                                <p className="text-base font-medium text-slate-900">{equipment.quantity || 1}</p>
+                                {equipment.quantity === 0 && (
+                                  <span className="ml-2 text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
+                                    Out of Stock
+                                  </span>
+                                )}
+                                {equipment.quantity && equipment.quantity > 1 && (
+                                  <span className="ml-2 text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">
+                                    Multiple Items
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
                               <h3 className="text-sm font-medium text-slate-500">Status</h3>
                               <div className="mt-1">
                                 {equipment.status && (
                                   <Badge variant={getStatusVariant(equipment.status)} size="md">
                                     {equipment.status.charAt(0).toUpperCase() + equipment.status.slice(1).replace('-', ' ')}
                                   </Badge>
+                                )}
+                                {equipment.quantity === 0 && (
+                                  <p className="mt-1 text-xs text-orange-600">
+                                    <svg className="inline-block h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    Status automatically set to "Unavailable" when quantity is 0
+                                  </p>
                                 )}
                               </div>
                             </div>

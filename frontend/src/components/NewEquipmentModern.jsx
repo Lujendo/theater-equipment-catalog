@@ -26,6 +26,7 @@ const NewEquipmentModern = () => {
     location_id: '',
     description: '',
     reference_image_id: '',
+    quantity: 1,
   });
 
   const [files, setFiles] = useState([]);
@@ -55,7 +56,7 @@ const NewEquipmentModern = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
 
   // Create equipment mutation
   const createMutation = useMutation({
@@ -150,18 +151,47 @@ const NewEquipmentModern = () => {
         console.log(`Setting status to "in-use" because custom location is not Lager (${value})`);
       }
     }
+    // Special handling for quantity field
+    else if (name === 'quantity') {
+      const quantityValue = parseInt(value, 10);
+
+      // Validate quantity
+      if (isNaN(quantityValue) || quantityValue < 0) {
+        console.log('Invalid quantity value, keeping previous value');
+        return; // Don't update if invalid
+      }
+
+      updatedFormData.quantity = quantityValue;
+
+      // If quantity is 0, set status to 'unavailable'
+      if (quantityValue === 0) {
+        console.log('Setting status to unavailable because quantity is 0');
+        updatedFormData.status = 'unavailable';
+      } else if (formData.status === 'unavailable' && quantityValue > 0) {
+        // If status was unavailable and quantity is now > 0, reset to available
+        console.log('Resetting status from unavailable to available because quantity > 0');
+        updatedFormData.status = 'available';
+      }
+    }
     // Special handling for status field
     else if (name === 'status') {
       // If user manually changes status, respect their choice
       console.log(`User manually changed status to: ${value}`);
 
-      // But if location is "Lager", force status to "available"
-      const locationName = formData.location || '';
-      const isLager = locationName.toLowerCase() === 'lager';
+      // But if quantity is 0, force status to "unavailable"
+      if (formData.quantity === 0 && value !== 'unavailable') {
+        console.log('Forcing status to "unavailable" because quantity is 0');
+        updatedFormData.status = 'unavailable';
+      }
+      // But if location is "Lager", force status to "available" (unless quantity is 0)
+      else {
+        const locationName = formData.location || '';
+        const isLager = locationName.toLowerCase() === 'lager';
 
-      if (isLager && value !== 'available') {
-        console.log('Forcing status back to "available" because location is Lager');
-        updatedFormData.status = 'available';
+        if (isLager && value !== 'available' && formData.quantity > 0) {
+          console.log('Forcing status back to "available" because location is Lager');
+          updatedFormData.status = 'available';
+        }
       }
     }
 
@@ -213,6 +243,12 @@ const NewEquipmentModern = () => {
     // Validate required fields
     if (!formData.type_id || !formData.brand || !formData.model || !formData.serial_number) {
       setError('Type, brand, model, and serial number are required');
+      return;
+    }
+
+    // Validate quantity
+    if (formData.quantity < 0 || isNaN(formData.quantity)) {
+      setError('Quantity must be a non-negative number');
       return;
     }
 
